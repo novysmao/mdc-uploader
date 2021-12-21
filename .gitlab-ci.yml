@@ -1,0 +1,60 @@
+image: node:12.16
+
+cache:
+  paths:
+    - node_modules
+
+before_script:
+  - npm ci
+
+stages:
+    - build
+    - deploy
+
+build-alpha:
+  stage: build
+  only:
+    refs:
+      - dev
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 week
+  script:
+    - npm run clean
+    - npm run build:alpha
+    - node scripts/copy-file.js
+
+build:
+  stage: build
+  only:
+    refs:
+      - tags
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 week
+  script:
+    - npm run clean
+    - npm run build
+    - node scripts/copy-file.js
+
+deploy-alpha:
+  stage: deploy
+  only:
+    refs:
+      - dev
+  script:
+    - OSS_REGION=${OSS_REGION} OSS_ID=${OSS_ID} OSS_SECRET=${OSS_SECRET} node scripts/deploy-alpha.js
+    - OSS_ID=${OSS_ID} OSS_SECRET=${OSS_SECRET} node scripts/refresh-alpha-cdn-cache.js
+  when: manual
+
+deploy-online:
+  stage: deploy
+  only:
+    refs:
+      - tags
+  script:
+    - OSS_REGION=${OSS_REGION} OSS_ID=${OSS_ID} OSS_SECRET=${OSS_SECRET} node scripts/deploy-online.js
+    - OSS_ID=${OSS_ID} OSS_SECRET=${OSS_SECRET} node scripts/refresh-cdn-cache.js
+  when: manual

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>demo</title>
+</head>
+<script src="../dist/index.min.js"></script>
+
+<body>
+    <p>--------------------媒体文件上传（video/audio）--------------------</p>
+    <button onclick="handleQueryUploadJobs()">获取上传列表</button><br>
+    <input id="file-input" type="file" onchange="handleFileChange();" /><br>
+    <button onclick="handleStartUpload()">开始上传</button><span id="media-progress"></span><br>
+    <button onclick="handleResume()">重新上传</button><br>
+    <button onclick="handleAbort()">终止上传</button><br>
+    <button onclick="handleIsExecutable()">查看执行资格</button><br>
+    <button onclick="handleQueryJob()">查看任务详情</button><br>
+    <p>
+        选择文件后，点击创建上传任务，然后点击开始上传
+    </p>
+    <br><br><br>
+    <p>--------------------文档上传--------------------</p>
+    <button onclick="handleDocQueryUploadJobs()">获取文档上传列表</button><br>
+    <input id="doc-file-input" type="file" onchange="handleDocFileChange();" /><br>
+    <button onclick="handleDocStartUpload()">开始上传</button><span id="doc-progress"></span><br>
+    <button onclick="handleDocResumeUpload()">重新上传</button><br>
+    <br><br><br>
+    <p>--------------------媒资url上传--------------------</p>
+    <span>媒资名称：</span><input type="text" id="upload-from-url-name-input"><br>
+    <span>媒资url：</span><input type="text" id="upload-from-url-input"><br>
+    <button onclick="handleDocUploadFromUrl()">url上传</button><br>
+</body>
+
+<script>
+    const appId = 55309290078289;
+    const token =
+        'eyJ0eXBlIjoiSnNvbldlYlRva2VuIiwiYWxnIjoiSFMyNTYifQ.eyJjZXJ0aWZ5VHlwZSI6IjEiLCJlbnRlcnByaXNlSWQiOiI1NTMwODY0NDE1NTQ0OSIsInRva2VuVHlwZSI6InVzZXJUb2tlbiIsInVzZXJOYW1lIjoibTEyMzQ1NiIsInN0YWZmVHlwZSI6IjE3ODU4ODU3NjA2IiwidXNlcklkIjoiNTUzMDg2NDQxNTU0NTAiLCJlbnRlcnByaXNlTmFtZSI6IuebrueduSIsImVtYWlsIjoibWFvYW93YW5nQG11ZHUudHYiLCJleHAiOjE2MzAxMTEzODIsIm5iZiI6MTYzMDA1MTM4Mn0.JA7WeQ2BvqOhcTacUclH9rLVzwOrkSRziRigzesD-ks';
+
+    const uploader = new MdcUploader({
+        token,
+        host: 'http://mdc-console.dev.mudu.tv',
+        uploadPartDomain: 'http://mdc-upload.dev.mudu.tv',
+        service: 'dashboard'
+    })
+
+    const jobId = 42638879555660;
+    const uploadId = "0000017ABDA794EF904BB2AF47E16662";
+    const mediaDom = document.getElementById('media-progress');
+    let task;
+
+    const handleFileChange = async () => {
+        const filelist = document.getElementById('file-input').files;
+        const file = filelist[0];
+        task = await uploader.createTask({
+            appId,
+            uploadId,
+            jobId,
+            file,
+            chunkSize: 2 * 1024 * 1000
+        });
+
+        task.on('status', (status) => {
+            console.log(status)
+        })
+        task.on('progress', v => {
+            mediaDom.innerText = `已上传：${v}%`;
+        })
+    }
+    const handleAbort = () => {
+        task.abort()
+    }
+
+    const handleQueryUploadJobs = () => {
+        task.queryJobs({
+            page: 1,
+            perPage: 20
+        }).then(res => {
+            console.log(res.items)
+        })
+    }
+
+    const handleStartUpload = async () => {
+        await task.createJob();
+        await task.start();
+    }
+
+    const handleResume = async () => {
+        await task.resume();
+    }
+
+    const handleIsExecutable = async () => {
+        const canExecutable = await task.canExecutable();
+        alert(canExecutable)
+    }
+
+    const handleQueryJob = async () => {
+        const job = await task.query();
+        console.log(job)
+    }
+</script>
+
+<script>
+    const documentId = 43348559921185;
+    const docUploadId = '0000017AC7CEDB0E9046306A0D09CC15';
+    const progressDom = document.getElementById('doc-progress')
+    let docTask;
+    const handleDocFileChange = async () => {
+        const file = document.getElementById('doc-file-input').files[0];
+        docTask = await uploader.createTask({
+            appId,
+            file,
+            chunkSize: 5 * 1024 * 1000
+        });
+
+        console.log(docTask)
+
+        docTask.on('status', (status) => {
+            console.log(status)
+        })
+        docTask.on('progress', v => {
+            progressDom.innerText = `已上传：${v}%`;
+        })
+    }
+
+    const handleDocQueryUploadJobs = () => {
+        docTask.queryDocs({
+            page: 1,
+            perPage: 20
+        });
+    }
+
+    const handleDocStartUpload = async () => {
+        await docTask.createJob();
+        await docTask.start();
+    }
+
+    const handleDocResumeUpload = () => {
+        docTask.resume();
+    }
+
+</script>
+<script>
+    let urlTask;
+    const handleDocUploadFromUrl = async () => {
+        const mediaName = document.getElementById('upload-from-url-name-input').value;
+        const url = document.getElementById('upload-from-url-input').value;
+        urlTask = await uploader.createTask({
+            appId,
+            mediaName,
+            url
+        });
+    }
+</script>
+
+</html>
